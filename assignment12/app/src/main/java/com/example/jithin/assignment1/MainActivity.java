@@ -26,21 +26,21 @@ public class MainActivity extends Activity implements SensorEventListener {
     LineGraphSeries<DataPoint> series2;
     LineGraphSeries<DataPoint> series3;
     int x_cord1=0, x_cord2=0,x_cord3 = 0;
-    double x_acc; double y_acc; double z_acc; long time_acc[];
+    double x_acc; double y_acc; double z_acc; long time_acc;
 
     private SensorManager senSensorManager;
     private Sensor senAccelerometer;
 
-    Random r1 = new Random();
+   /* Random r1 = new Random();
     Random r2 = new Random();
-    Random r3 = new Random();
+    Random r3 = new Random();*/
     int i=0;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //x_acc = new double[1000]; y_acc=new double[1000]; z_acc=new double[1000];
-        time_acc=new long[1000];
+        //time_acc=new long[1000];
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         //graph View
@@ -143,7 +143,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             y_acc = event.values[1];
             z_acc = event.values[2];
             long timestamp = System.currentTimeMillis();
-            time_acc[i] = timestamp;
+            time_acc = timestamp;
             //System.out.print(x_acc[i]);
             i++;
         }
