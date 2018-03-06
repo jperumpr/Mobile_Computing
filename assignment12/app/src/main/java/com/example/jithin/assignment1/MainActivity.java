@@ -2,13 +2,24 @@ package com.example.jithin.assignment1;
 
 import android.app.Activity;
 import android.content.Context;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.GridLabelRenderer;
@@ -16,9 +27,21 @@ import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import java.io.File;
 import java.util.Random;
 
 public class MainActivity extends Activity implements SensorEventListener {
+
+    SQLiteDatabase db;
+
+    EditText patientID;
+    EditText Age;
+    EditText Name;
+
+    String patientIDText = "";
+    String ageText = "";
+    String nameText = "";
+    //String Sex;
 
     Button b1, b2;
     int flag = 0;
@@ -26,7 +49,10 @@ public class MainActivity extends Activity implements SensorEventListener {
     LineGraphSeries<DataPoint> series2;
     LineGraphSeries<DataPoint> series3;
     int x_cord1=0, x_cord2=0,x_cord3 = 0;
-    double x_acc; double y_acc; double z_acc; long time_acc;
+    double x_acc;
+    double y_acc;
+    double z_acc;
+    long time_acc;
 
     private SensorManager senSensorManager;
     private Sensor senAccelerometer;
@@ -39,15 +65,20 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        //x_acc = new double[1000]; y_acc=new double[1000]; z_acc=new double[1000];
-        //time_acc=new long[1000];
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        patientID = (EditText) findViewById(R.id.id_text_field);
+        Age = (EditText) findViewById(R.id.age_text_field);
+        Name = (EditText) findViewById(R.id.name_text_field);
+        //Sex = (RadioGroup) findViewById(R.id.radioGroup2);
+
+
         //graph View
         final GraphView graph1 = (GraphView) findViewById(R.id.g1); // graph object
-
         final GraphView graph2 = (GraphView) findViewById(R.id.g2);
         final GraphView graph3 = (GraphView) findViewById(R.id.g3);
+
         series1 = new LineGraphSeries<DataPoint>();
         series2 = new LineGraphSeries<DataPoint>();
         series3 = new LineGraphSeries<DataPoint>();
@@ -65,33 +96,6 @@ public class MainActivity extends Activity implements SensorEventListener {
         gridLabel2.setVerticalAxisTitle("Y");
         gridLabel3.setHorizontalAxisTitle("TimeSeries");
         gridLabel3.setVerticalAxisTitle("Z");
-
-
-        //STOP button Functionality
-        b1 = (Button) findViewById(R.id.button_stop);
-        b1.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Do something in response to button click
-                flag = 0;
-                graph1.removeAllSeries();// remove 2 more series
-                graph2.removeAllSeries();
-                graph3.removeAllSeries();
-            }
-        });
-        //RUN button Functionality
-        b2 = (Button) findViewById(R.id.button_run);
-        b2.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Do something in response to button click
-
-                flag = 1;
-                graph1.addSeries(series1); //2 more graph series
-                graph2.addSeries(series2);
-                graph3.addSeries(series3);
-
-
-            }
-        });
 
         Viewport viewport1 = graph1.getViewport();
         viewport1.setXAxisBoundsManual(true);
@@ -118,7 +122,62 @@ public class MainActivity extends Activity implements SensorEventListener {
         viewport3.setMaxY(40);
         //viewport.setScrollable(true);
 
+        try {
+            File dir = new File("/mnt/sdcard/Android/data", "com.example.database");
+            try {
+                if (!dir.exists()) {
+                    dir.mkdir();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            db = SQLiteDatabase.openOrCreateDatabase("/mnt/sdcard/Android/data/com.example.database/Group6.db", null);
+        }
+        catch (SQLiteException  e){
+            //Handle the error
+        }
 
+        //STOP button Functionality
+        b1 = (Button) findViewById(R.id.button_stop);
+        b1.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Do something in response to button click
+                flag = 0;
+                graph1.removeAllSeries();// remove 2 more series
+                graph2.removeAllSeries();
+                graph3.removeAllSeries();
+            }
+        });
+        //RUN button Functionality
+        b2 = (Button) findViewById(R.id.button_run);
+        b2.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                patientIDText = patientID.getText().toString();
+                ageText = Age.getText().toString();
+                nameText = Name.getText().toString();
+
+                // Do something in response to button click
+                if(patientIDText.matches("") || ageText.matches("") || nameText.matches("")) {
+                    //Insert
+                    Toast.makeText(MainActivity.this, "Please enter all Text Fields", Toast.LENGTH_LONG).show();
+                }
+                else {
+                    try{
+                        String table_name = nameText+"_"+patientIDText+"_"+ageText;//Sex is missing
+                        String query = "CREATE TABLE IF NOT EXISTS " + table_name + "(timestamp TEXT, x TEXT, y TEXT, z TEXT);";
+                        db.execSQL(query);
+                    }
+                    catch (Exception e){
+                        //Handle the error
+                        Log.e("Error", e.toString());
+                    }
+                    flag = 1;
+                    graph1.addSeries(series1); //2 more graph series
+                    graph2.addSeries(series2);
+                    graph3.addSeries(series3);
+                }
+            }
+        });
     }
 
     private void addPlot() {
@@ -129,6 +188,19 @@ public class MainActivity extends Activity implements SensorEventListener {
         x_cord1++;
         x_cord2++;
         x_cord3++;
+        try{
+            db.beginTransaction();
+            String table_name = nameText+"_"+patientIDText+"_"+ageText;//Sex is missing
+            String query = "INSERT INTO "+ table_name +" values ('"+x_cord1+"', '"+ x_acc +"', '"+ y_acc +"', '"+ z_acc +"');";
+            db.execSQL(query);
+        }
+        catch (SQLiteException e){
+            //Handle the error
+            Log.e("Error", e.toString());
+        }
+        finally {
+            db.endTransaction();
+        }
 
     }
 
