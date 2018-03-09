@@ -1,6 +1,7 @@
 package com.example.jithin.assignment1;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
@@ -37,21 +38,23 @@ public class MainActivity extends Activity implements SensorEventListener {
     EditText patientID;
     EditText Age;
     EditText Name;
+    RadioGroup Sex;
 
     String patientIDText = "";
     String ageText = "";
     String nameText = "";
+    String sex="";
     //String Sex;
 
-    Button b1, b2;
+    Button b1, b2,b3,b4;
     int flag = 0;
     LineGraphSeries<DataPoint> series1;
     LineGraphSeries<DataPoint> series2;
     LineGraphSeries<DataPoint> series3;
     int x_cord1=0, x_cord2=0,x_cord3 = 0;
-    double x_acc;
-    double y_acc;
-    double z_acc;
+    float x_acc;
+    float y_acc;
+    float z_acc;
     long time_acc;
 
     private SensorManager senSensorManager;
@@ -71,7 +74,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         patientID = (EditText) findViewById(R.id.id_text_field);
         Age = (EditText) findViewById(R.id.age_text_field);
         Name = (EditText) findViewById(R.id.name_text_field);
-        //Sex = (RadioGroup) findViewById(R.id.radioGroup2);
+        Sex = (RadioGroup) findViewById(R.id.radioGroup1);
 
 
         //graph View
@@ -123,7 +126,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         //viewport.setScrollable(true);
 
         try {
-            File dir = new File("/mnt/sdcard/Android/data", "com.example.database");
+            File dir = new File("/mnt/sdcard/Android/data", "CSE535_ASSIGNMENT2");
             try {
                 if (!dir.exists()) {
                     dir.mkdir();
@@ -131,7 +134,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            db = SQLiteDatabase.openOrCreateDatabase("/mnt/sdcard/Android/data/com.example.database/Group6.db", null);
+            db = SQLiteDatabase.openOrCreateDatabase("/mnt/sdcard/Android/data/CSE535_ASSIGNMENT2/Group6.db", null);
         }
         catch (SQLiteException  e){
             //Handle the error
@@ -146,6 +149,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                 graph1.removeAllSeries();// remove 2 more series
                 graph2.removeAllSeries();
                 graph3.removeAllSeries();
+
+
             }
         });
         //RUN button Functionality
@@ -155,17 +160,24 @@ public class MainActivity extends Activity implements SensorEventListener {
                 patientIDText = patientID.getText().toString();
                 ageText = Age.getText().toString();
                 nameText = Name.getText().toString();
+                if(((RadioButton) findViewById(Sex.getCheckedRadioButtonId()))==null)
+                    sex="";
+                else
+                    sex=((RadioButton) findViewById(Sex.getCheckedRadioButtonId())).getText().toString();
 
                 // Do something in response to button click
-                if(patientIDText.matches("") || ageText.matches("") || nameText.matches("")) {
+                if(patientIDText.matches("") || ageText.matches("") || nameText.matches("") || sex.matches("")) {
                     //Insert
                     Toast.makeText(MainActivity.this, "Please enter all Text Fields", Toast.LENGTH_LONG).show();
                 }
                 else {
                     try{
-                        String table_name = nameText+"_"+patientIDText+"_"+ageText;//Sex is missing
-                        String query = "CREATE TABLE IF NOT EXISTS " + table_name + "(timestamp TEXT, x TEXT, y TEXT, z TEXT);";
+                        String table_name = nameText+"_"+patientIDText+"_"+ageText+"_"+sex;
+                        table_name=table_name.replaceAll("\\s+","");
+                        String query = "create table if not exists " + table_name + " (Timestamp text, x float, y float, z float);";
                         db.execSQL(query);
+
+
                     }
                     catch (Exception e){
                         //Handle the error
@@ -178,7 +190,43 @@ public class MainActivity extends Activity implements SensorEventListener {
                 }
             }
         });
+        //Upload button functionality
+        b3 = (Button) findViewById(R.id.button_upload);
+        b3.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                String filepath="/mnt/sdcard/Android/data/CSE535_ASSIGNMENT2/Group6.db";
+                UploadClass uc=new UploadClass(filepath);
+                uc.start();
+                try {
+                    uc.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                Toast.makeText(MainActivity.this,uc.getOutput(),Toast.LENGTH_SHORT).show();
+
+            }
+        });
+
+
+
+
+        //Download button functionality
+        b4 = (Button) findViewById(R.id.button_download);
+        b4.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                DownloadClass dc= new DownloadClass();
+                dc.start();
+                try {
+                    dc.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                Toast.makeText(MainActivity.this,dc.getOutput(),Toast.LENGTH_SHORT).show();
+
+            }
+        });
     }
+
 
     private void addPlot() {
         // TODO Auto-generated method stub
@@ -190,9 +238,11 @@ public class MainActivity extends Activity implements SensorEventListener {
         x_cord3++;
         try{
             db.beginTransaction();
-            String table_name = nameText+"_"+patientIDText+"_"+ageText;//Sex is missing
-            String query = "INSERT INTO "+ table_name +" values ('"+x_cord1+"', '"+ x_acc +"', '"+ y_acc +"', '"+ z_acc +"');";
+            String table_name = nameText+"_"+patientIDText+"_"+ageText+"_"+sex;
+            table_name=table_name.replaceAll(" ","");
+            String query ="INSERT INTO "+ table_name +" (Timestamp, x, y, z) VALUES ('"+x_cord1+"', "+ x_acc +", "+ y_acc +", "+ z_acc +");";
             db.execSQL(query);
+            db.setTransactionSuccessful(); //commit your changes
         }
         catch (SQLiteException e){
             //Handle the error
